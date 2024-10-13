@@ -1,7 +1,9 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.forms import inlineformset_factory
 from django.urls import reverse_lazy, reverse
 
-from catalog.forms import ProductForm, VersionForm
+from catalog.forms import ProductForm, VersionForm, ProductModeratorForm
 from catalog.models import Product, Version
 from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView
 
@@ -29,13 +31,13 @@ class ProductDetailView(DetailView):
         self.object.save()
         return self.object
 
-class ProductCreateView(CreateView):
+class ProductCreateView(LoginRequiredMixin, CreateView):
     model = Product
     form_class = ProductForm
     #fields = ("name", "description", "photo", "category", "price", "created_at", "updated_at", "manufactured_at")
     success_url = reverse_lazy('catalog:product_list')
 
-class ProductUpdateView(UpdateView):
+class ProductUpdateView(LoginRequiredMixin, UpdateView):
     model = Product
     form_class = ProductForm
     #fields = ("name", "description", "photo", "category", "price", "created_at", "updated_at", "manufactured_at")
@@ -64,7 +66,17 @@ class ProductUpdateView(UpdateView):
         else:
             return self.render_to_response(self.get_context_data(form=form, formset=formset))
 
-class ProductDeleteView(DeleteView):
+    def get_form_class(self):
+        """ Получаем форму в зависимости от прав пользователя  """
+        user = self.request.user
+        if user == self.object.owner:
+            return ProductForm
+        if user.has_perm('catalog.change_category') and user.has_perm('catalog.change_depiction') and user.has_perm(
+                'catalog.change_publication'):
+            return ProductModeratorForm
+        raise PermissionDenied('У вас недостаточно прав для редактирования этого продукта.')
+
+class ProductDeleteView(LoginRequiredMixin, DeleteView):
     model = Product
     success_url = reverse_lazy('catalog:product_list')
 

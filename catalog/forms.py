@@ -43,3 +43,10 @@ class VersionForm(StyleFormMixin, ModelForm):
     class Meta:
         model = Version
         fields = '__all__'
+
+class ProductModeratorForm(StyleFormMixin, ModelForm):
+    """ Форма модератора для публикации продукта """
+
+    class Meta:
+        model = Product
+        fields = ('is_published', 'description', 'category',)
